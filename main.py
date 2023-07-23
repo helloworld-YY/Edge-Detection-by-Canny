@@ -16,6 +16,8 @@ class Canny:
         
     def Get_gradient_img(self):
         
+        #计算图像的梯度值和方向
+        
         print('输出梯度图像')
         
         # Mycode
@@ -35,5 +37,65 @@ class Canny:
         
         gradient_img, angle = cv2.cartToPolar(new_img_x, new_img_y) #返回的每个值都是二维数组
         self.angle = np.tan(angle) #用tan值表示
-        self.img = gradient_img.astype(np.uint8)
-        return self.img    
+        self.img = gradient_img.astype(np.uint8) #8进制编码
+        return self.img   
+    
+    def Non_maximum_suppression(self):
+         #对梯度图进行非极大抑制，并确定最终梯度方向
+         
+        print('Non_maximum_suppression')
+        result = np.zeros([self.y, self.x])
+         
+        for i in range(1, self.y-1):
+            for j in range(1, self.x-1):
+                
+                #小于4认为不是边缘？
+                if abs(self.img[i][j]) <= 4:
+                    result[i][j] = 0
+                    continue        
+                
+                #找到变换最大的方向，注意坐标原点在左上角
+                #注意此处用的是|tan|，故判断完角度后还需判断其正负值，才可确定其象限
+                
+                elif abs(self.angle[i][j])>1:
+                    gradient2 = self.img[i - 1][j]
+                    gradient4 = self.img[i + 1][j]
+                    
+                    #第一三象限正方向
+                    if self.angle[i][j] > 0:
+                        gradient1 = self.img[i - 1][j - 1]
+                        gradient3 = self.img[i + 1][j + 1]
+                    
+                    #第二四象限方向    
+                    else:
+                        gradient1 = self.img[i - 1][j + 1]
+                        gradient3 = self.img[i + 1][j - 1]
+                    
+                else:
+                    #倾斜角度小于45°时
+                    gradient2 = self.img[i][j - 1] 
+                    gradient4 = self.img[i][j + 1]
+                    
+                    if self.angle[i][j] > 0:
+                        gradient1 = self.img[i - 1][j - 1]
+                        gradient3 = self.img[i + 1][j + 1]
+                        
+                    else:
+                        gradient1 = self.img[i + 1][j - 1]
+                        gradient3 = self.img[i - 1][j + 1]
+                
+                #此处注意角度判断，g1 g2 g3 g4的设置也方便了代码的统一化        
+                temp1 = abs(self.angle[i][j]) * gradient1 + (1 - abs(self.angle[i][j])) * gradient2
+                temp2 = abs(self.angle[i][j]) * gradient3 + (1 - abs(self.angle[i][j])) * gradient4
+                
+                if  self.img[i][j] >= temp1 and self.img[i][j]>= temp2:
+                    result[i][j] = self.img[i][j]
+                else:
+                    result[i][j] = 0
+                
+                self.img = result
+                
+                return self.img  
+        
+        
+                
